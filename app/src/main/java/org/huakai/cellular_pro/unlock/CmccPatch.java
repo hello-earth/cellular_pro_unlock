@@ -39,7 +39,7 @@ public class CmccPatch implements IXposedHookLoadPackage {
             final Class<?> OplusHansPackage= XposedHelpers.findClass("com.android.server.hans.OplusHansPackage", loadPackageParam.classLoader);
             final Class<?> ProcessInfo = XposedHelpers.findClass("com.android.server.am.ProcessInfo", loadPackageParam.classLoader);
             final Class<?> ProcessRecord = XposedHelpers.findClass("com.android.server.am.ProcessRecord", loadPackageParam.classLoader);
-            final Class<?> KillContext = XposedHelpers.findClass("com.android.server.am.OplusOsenseKillAction$$KillContext", loadPackageParam.classLoader);
+            final Class<?> KillContext = XposedHelpers.findClass("com.android.server.am.OplusOsenseKillAction$KillContext", loadPackageParam.classLoader);
 
             XposedHelpers.findAndHookMethod("com.android.server.am.OplusOsenseKillAction", loadPackageParam.classLoader,
                     "killOneProcessLocked", KillContext, ProcessInfo, String.class,
