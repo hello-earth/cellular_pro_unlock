@@ -3,6 +3,7 @@ package org.huakai.cellular_pro.unlock;
 import android.content.Context;
 import android.util.Log;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -79,7 +80,7 @@ public class CmccPatch implements IXposedHookLoadPackage {
                             Method method = OplusHansPackage.getMethod("getPkgName", new Class[]{});
                             String PkgName = (String)method.invoke(oplusHansPackage, new Object[]{});
                             if (ignorePkgs.contains(PkgName)) {
-                                log("make " + PkgName + " important");
+//                                log("make " + PkgName + " important");
                                 param.setResult(true);
                             }
                         }
@@ -127,6 +128,28 @@ public class CmccPatch implements IXposedHookLoadPackage {
                         }
                     }
             );
+        } else if (loadPackageParam.packageName.equals("com.scenix.mlearning")) {    //过滤包名
+            log("the fake loader = " + loadPackageParam.classLoader.hashCode());
+            XposedHelpers.findAndHookConstructor("javax.crypto.spec.SecretKeySpec", loadPackageParam.classLoader, Array.newInstance(byte.class,0).getClass(), String.class, new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    log("_360Firm beforeHookedMethod 1");
+                    //获取到Context对象，通过这个对象来获取classloader
+                    byte[] context = (byte[]) param.args[0];
+                    //获取classloader，之后hook加固后的就使用这个classloader
+                    log("the key = "+ new String(context) + " and method="+param.args[1]);
+                }
+            });
+            XposedHelpers.findAndHookConstructor("javax.crypto.spec.IvParameterSpec", loadPackageParam.classLoader, Array.newInstance(byte.class,0).getClass(), new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    log("_360Firm beforeHookedMethod 2");
+                    //获取到Context对象，通过这个对象来获取classloader
+                    byte[] context = (byte[]) param.args[0];
+                    //获取classloader，之后hook加固后的就使用这个classloader
+                    log("iv = "+ new String(context) );
+                }
+            });
         }
     }
 }
