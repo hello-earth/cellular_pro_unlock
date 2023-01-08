@@ -7,22 +7,36 @@ import org.json.JSONObject;
 public class ConfigUtils {
 
     private static JSONObject config;
+    private static ConfigUtils configUtils;
 
-    public static JSONObject readConfig() {
+    public ConfigUtils() {
+        initConfig();
+    }
+
+    public static ConfigUtils getInstance(){
+        if (configUtils == null) {
+            synchronized (ConfigUtils.class) {
+                if (configUtils == null) {
+                    configUtils = new ConfigUtils();
+                }
+            }
+        }
+        return configUtils;
+    }
+
+    public static void initConfig() {
         StringBuilder builder = FileUtils.readFile("/storage/emulated/0/Android/protect_config.json");
         if(builder != null) {
             try {
                 config = new JSONObject(builder.toString());
-                return  config;
             } catch (JSONException e) {
                 e.printStackTrace();
+                config = new JSONObject();
             }
         }
-        config = new JSONObject();
-        return config;
     }
 
-    public static void saveConfig() throws Exception {
+    public void saveConfig() throws Exception {
         if(config !=null ) {
             FileUtils.writeFile("/storage/emulated/0/Android/protect_config.json", config.toString());
         } else {
@@ -30,7 +44,7 @@ public class ConfigUtils {
         }
     }
 
-    public static boolean getBoolean(String name){
+    public boolean getBoolean(String name){
         if(config != null ) {
             try {
                 return config.getBoolean(name);
@@ -40,5 +54,10 @@ public class ConfigUtils {
         }
         return false;
     }
+
+    public void put(String name, boolean value) throws JSONException {
+        config.put(name, value);
+    }
+
 
 }

@@ -17,8 +17,9 @@ import org.json.JSONObject;
 
 public class MainActivity extends AppCompatActivity {
 
-    private JSONObject config;
     private Switch protectSwitch, restartSwitch, packageSwitch, serviceSwitch, showIconSwitch;
+
+    private static ConfigUtils configUtils;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,17 +40,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void init(){
-        config = ConfigUtils.readConfig();
+        configUtils = ConfigUtils.getInstance();
         protectSwitch = findViewById(R.id.protect_switch);
         restartSwitch = findViewById(R.id.restart_switch);
         packageSwitch = findViewById(R.id.package_switch);
         serviceSwitch = findViewById(R.id.service_switch);
         showIconSwitch = findViewById(R.id.main_button);
-        protectSwitch.setChecked(ConfigUtils.getBoolean("use_protect_list"));
-        restartSwitch.setChecked(ConfigUtils.getBoolean("use_restart_list"));
-        packageSwitch.setChecked(ConfigUtils.getBoolean("use_package_list"));
-        serviceSwitch.setChecked(ConfigUtils.getBoolean("use_service_list"));
-        showIconSwitch.setChecked(ConfigUtils.getBoolean("show_icon"));
+        protectSwitch.setChecked(configUtils.getBoolean("use_protect_list"));
+        restartSwitch.setChecked(configUtils.getBoolean("use_restart_list"));
+        packageSwitch.setChecked(configUtils.getBoolean("use_package_list"));
+        serviceSwitch.setChecked(configUtils.getBoolean("use_service_list"));
+        showIconSwitch.setChecked(configUtils.getBoolean("show_icon"));
     }
 
     private void hide() {
@@ -68,28 +69,28 @@ public class MainActivity extends AppCompatActivity {
         boolean isChecked = ((Switch) view).isChecked();
         switch (view.getId()){
             case R.id.protect_switch:
-                config.put("use_protect_list", isChecked);
+                configUtils.put("use_protect_list", isChecked);
                 break;
             case R.id.restart_switch:
-                config.put("use_restart_list", isChecked);
+                configUtils.put("use_restart_list", isChecked);
                 break;
             case R.id.package_switch:
-                config.put("use_package_list", isChecked);
+                configUtils.put("use_package_list", isChecked);
                 break;
             case R.id.service_switch:
-                config.put("use_service_list", isChecked);
+                configUtils.put("use_service_list", isChecked);
                 break;
             case R.id.main_button:
                 if(isChecked)
                     hide();
                 else
                     show();
-                config.put("show_icon", isChecked);
+                configUtils.put("show_icon", isChecked);
                 break;
             default:
                 break;
         }
-        ConfigUtils.saveConfig();
+        configUtils.saveConfig();
     }
 
 }

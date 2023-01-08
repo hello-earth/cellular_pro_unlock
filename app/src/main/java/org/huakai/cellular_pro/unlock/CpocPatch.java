@@ -2,7 +2,6 @@ package org.huakai.cellular_pro.unlock;
 
 
 
-import android.app.Application;
 import android.content.Context;
 import android.util.Log;
 
@@ -11,7 +10,6 @@ import org.json.JSONObject;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -33,6 +31,8 @@ public class CpocPatch implements IXposedHookLoadPackage {
     private static Set<String> ignoreProcesses = new HashSet<>();
     private static Set<String> ignoreServices = new HashSet<>();
 
+    private static ConfigUtils configUtils;
+
     static {
         ignorePkgs.add("com.cmcc.cmvideo");
         ignorePkgs.add("com.jy.xposed.skip");
@@ -52,8 +52,8 @@ public class CpocPatch implements IXposedHookLoadPackage {
     }
 
     private void log(String a){
-//        XposedBridge.log("****cpocxposedplugin=> "+a);
-//        System.out.println(a);
+        XposedBridge.log("****cpocxposedplugin=> "+a);
+        Log.d("cpocxposedplugin", a);
     }
 
     @Override
@@ -61,7 +61,10 @@ public class CpocPatch implements IXposedHookLoadPackage {
 
         if (loadPackageParam.packageName.equals("android")) {
 
-            JSONObject config = ConfigUtils.readConfig();
+            configUtils = ConfigUtils.getInstance();
+
+            log("use_protect_list:" + configUtils.getBoolean("use_protect_list"));
+            log("use_package_list:" + configUtils.getBoolean("use_package_list"));
 
             log("packageName=" + loadPackageParam.packageName);
             Class OplusHansManager = XposedHelpers.findClassIfExists("com.android.server.am.OplusHansManager", loadPackageParam.classLoader);
@@ -73,12 +76,11 @@ public class CpocPatch implements IXposedHookLoadPackage {
             final Class<?> ProcessRecord = XposedHelpers.findClass("com.android.server.am.ProcessRecord", loadPackageParam.classLoader);
 
 
-
             //添加被保护的包名和被保护的进程信息
             XposedHelpers.findAndHookConstructor("com.android.server.am.ConfigUtil", loadPackageParam.classLoader, new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws IllegalAccessException {
-                    if(ConfigUtils.getBoolean("use_protect_list")) {
+                    if(configUtils.getBoolean("use_protect_list")) {
                         Field[] fields = param.thisObject.getClass().getDeclaredFields();    // 获取对象的所有属性
                         for (Field item : fields) {
                             String name = item.getName();
@@ -110,7 +112,7 @@ public class CpocPatch implements IXposedHookLoadPackage {
                     new XC_MethodHook() {
                         @Override
                         protected void afterHookedMethod(MethodHookParam param) {
-                            if(ConfigUtils.getBoolean("use_restart_list")) {
+                            if(configUtils.getBoolean("use_restart_list")) {
                                 List mProtectPkg = Arrays.asList(new String[]{
                                         "com.tencent.mm",
                                         "com.tencent.mobileqq",
@@ -151,25 +153,25 @@ public class CpocPatch implements IXposedHookLoadPackage {
 //            );
 //
 //
-//            XposedHelpers.findAndHookMethod("com.android.server.hans.scene.HansSceneManager", loadPackageParam.classLoader,
-//                    "freezeForSceneCombo", OplusHansPackage,
-//                    new XC_MethodHook() {
-//                        @Override
-//                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-//                            Object oplusHansPackage = param.args[0];
-//                            Method method = OplusHansPackage.getMethod("getPkgName", new Class[]{});
-//                            String PkgName = (String)method.invoke(oplusHansPackage, new Object[]{});
-//                            if (ignorePkgs.contains(PkgName)) {
-//                                method = OplusHansPackage.getMethod("getUid", new Class[]{});
-//                                int PkgUid = (int)method.invoke(oplusHansPackage, new Object[]{});
-//                                Object hansManager = XposedHelpers.callStaticMethod(OplusHansManager, "getInstance");
-//                                XposedHelpers.callMethod(hansManager, "setNetCare", PkgUid);
-//                                param.setResult(null);
-//                                log("refuse freeze pgname=" + PkgName + " uid=" + PkgUid + " in freezeForSceneCombo");
-//                            }
-//                        }
-//                    }
-//            );
+            XposedHelpers.findAndHookMethod("com.android.server.hans.scene.HansSceneManager", loadPackageParam.classLoader,
+                    "freezeForSceneCombo", OplusHansPackage,
+                    new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            Object oplusHansPackage = param.args[0];
+                            Method method = OplusHansPackage.getMethod("getPkgName", new Class[]{});
+                            String PkgName = (String)method.invoke(oplusHansPackage, new Object[]{});
+                            if (ignorePkgs.contains(PkgName)) {
+                                method = OplusHansPackage.getMethod("getUid", new Class[]{});
+                                int PkgUid = (int)method.invoke(oplusHansPackage, new Object[]{});
+                                Object hansManager = XposedHelpers.callStaticMethod(OplusHansManager, "getInstance");
+                                XposedHelpers.callMethod(hansManager, "setNetCare", PkgUid);
+                                param.setResult(null);
+                                log("refuse freeze pgname=" + PkgName + " uid=" + PkgUid + " in freezeForSceneCombo");
+                            }
+                        }
+                    }
+            );
 //
 //            XposedHelpers.findAndHookMethod("com.android.server.hans.scene.HansSceneManager", loadPackageParam.classLoader,
 //                    "freezeDirectlyForSceneCombo", OplusHansPackage,
@@ -200,7 +202,7 @@ public class CpocPatch implements IXposedHookLoadPackage {
                 XposedBridge.hookMethod(skipStopInBackgroundBegin, new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        if(ConfigUtils.getBoolean("use_service_list")) {
+                        if(configUtils.getBoolean("use_service_list")) {
                             Object paramServiceRecord = param.args[0];
                             Object shortInstanceName = null;
                             Field[] fields = paramServiceRecord.getClass().getDeclaredFields();    // 获取对象的所有属性
@@ -231,13 +233,15 @@ public class CpocPatch implements IXposedHookLoadPackage {
                     new XC_MethodHook() {
                         @Override
                         protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                            if(ConfigUtils.getBoolean("use_package_list")) {
+                            if(configUtils.getBoolean("use_package_list")) {
                                 Object oplusHansPackage = param.args[0];
                                 Method method = OplusHansPackage.getMethod("getPkgName", new Class[]{});
                                 String PkgName = (String) method.invoke(oplusHansPackage, new Object[]{});
                                 if (ignorePkgs.contains(PkgName)) {
                                     log("make " + PkgName + " important");
                                     param.setResult(true);
+                                }else{
+                                    log(PkgName + " is not a important pkg");
                                 }
                             }
                         }
@@ -251,7 +255,7 @@ public class CpocPatch implements IXposedHookLoadPackage {
                 XposedBridge.hookMethod(method, new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        if(ConfigUtils.getBoolean("use_package_list")) {
+                        if(configUtils.getBoolean("use_package_list")) {
                             if (param.args[0].toString().indexOf("cpu") != -1) {
                                 Object processRecord = param.thisObject;
                                 Method method = ProcessRecord.getMethod("toShortString", new Class[]{});
