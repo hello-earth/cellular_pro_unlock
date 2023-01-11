@@ -1,18 +1,12 @@
 package org.huakai.cellular_pro.unlock;
 
-import androidx.appcompat.app.AppCompatActivity;
 
-import android.Manifest;
 import android.content.ComponentName;
-import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.Settings;
 import android.view.View;
 import android.widget.Switch;
-import org.json.JSONObject;
+import androidx.appcompat.app.AppCompatActivity;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -25,27 +19,27 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                if (!Environment.isExternalStorageManager()) {
-                    Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
-                    startActivity(intent);
-                    return;
-                }
-            } else {
-                requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 111111);
-            }
-        }
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+//                if (!Environment.isExternalStorageManager()) {
+//                    Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+//                    startActivity(intent);
+//                    return;
+//                }
+//            } else {
+//                requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 111111);
+//            }
+//        }
         init();
     }
 
     private void init(){
         configUtils = ConfigUtils.getInstance();
-        protectSwitch = findViewById(R.id.protect_switch);
-        restartSwitch = findViewById(R.id.restart_switch);
-        packageSwitch = findViewById(R.id.package_switch);
-        serviceSwitch = findViewById(R.id.service_switch);
-        showIconSwitch = findViewById(R.id.main_button);
+        protectSwitch = (Switch)findViewById(R.id.protect_switch);
+        restartSwitch = (Switch)findViewById(R.id.restart_switch);
+        packageSwitch = (Switch)findViewById(R.id.package_switch);
+        serviceSwitch = (Switch)findViewById(R.id.service_switch);
+        showIconSwitch = (Switch)findViewById(R.id.main_button);
         protectSwitch.setChecked(configUtils.getBoolean("use_protect_list"));
         restartSwitch.setChecked(configUtils.getBoolean("use_restart_list"));
         packageSwitch.setChecked(configUtils.getBoolean("use_package_list"));

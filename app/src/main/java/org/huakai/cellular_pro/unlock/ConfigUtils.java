@@ -8,8 +8,9 @@ public class ConfigUtils {
 
     private static JSONObject config;
     private static ConfigUtils configUtils;
+    private final static String configPath = "/data/data/org.huakai.cellular_pro.unlock/cache/protect_config.json";
 
-    public ConfigUtils() {
+    private ConfigUtils() {
         initConfig();
     }
 
@@ -24,21 +25,22 @@ public class ConfigUtils {
         return configUtils;
     }
 
-    public static void initConfig() {
-        StringBuilder builder = FileUtils.readFile("/storage/emulated/0/Android/protect_config.json");
+    private void initConfig() {
+        StringBuilder builder = FileUtils.readFile(configPath);
         if(builder != null) {
             try {
                 config = new JSONObject(builder.toString());
+                return;
             } catch (JSONException e) {
                 e.printStackTrace();
-                config = new JSONObject();
             }
         }
+        config = new JSONObject();
     }
 
     public void saveConfig() throws Exception {
         if(config !=null ) {
-            FileUtils.writeFile("/storage/emulated/0/Android/protect_config.json", config.toString());
+            FileUtils.writeFile(configPath, config.toString());
         } else {
             throw new Exception("you can not save a config without initial");
         }

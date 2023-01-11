@@ -2,11 +2,19 @@ package org.huakai.cellular_pro.unlock;
 
 
 
+import android.content.ContentResolver;
 import android.content.Context;
+import android.net.Uri;
 import android.util.Log;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -17,6 +25,7 @@ import java.util.Set;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XSharedPreferences;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
@@ -31,7 +40,7 @@ public class CpocPatch implements IXposedHookLoadPackage {
     private static Set<String> ignoreProcesses = new HashSet<>();
     private static Set<String> ignoreServices = new HashSet<>();
 
-    private static ConfigUtils configUtils;
+    private static XSharedPreferences configUtils;
 
     static {
         ignorePkgs.add("com.cmcc.cmvideo");
@@ -56,15 +65,16 @@ public class CpocPatch implements IXposedHookLoadPackage {
         Log.d("cpocxposedplugin", a);
     }
 
+    static Context getSystemContext() {
+        Object activityThread = de.robv.android.xposed.XposedHelpers.callStaticMethod(de.robv.android.xposed.XposedHelpers.findClass("android.app.ActivityThread", null), "currentActivityThread");
+        return (Context) de.robv.android.xposed.XposedHelpers.callMethod(activityThread, "getSystemContext");
+    }
+
+
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam loadPackageParam) {
 
         if (loadPackageParam.packageName.equals("android")) {
-
-            configUtils = ConfigUtils.getInstance();
-
-            log("use_protect_list:" + configUtils.getBoolean("use_protect_list"));
-            log("use_package_list:" + configUtils.getBoolean("use_package_list"));
 
             log("packageName=" + loadPackageParam.packageName);
             Class OplusHansManager = XposedHelpers.findClassIfExists("com.android.server.am.OplusHansManager", loadPackageParam.classLoader);
@@ -74,45 +84,49 @@ public class CpocPatch implements IXposedHookLoadPackage {
             final Class<?> ServiceRecord = XposedHelpers.findClass("com.android.server.am.ServiceRecord", loadPackageParam.classLoader);
             final Class<?> ActiveServicesExtImpl = XposedHelpers.findClass("com.android.server.am.ActiveServicesExtImpl", loadPackageParam.classLoader);
             final Class<?> ProcessRecord = XposedHelpers.findClass("com.android.server.am.ProcessRecord", loadPackageParam.classLoader);
-
-
+            configUtils = new XSharedPreferences(BuildConfig.APPLICATION_ID);
+            configUtils.makeWorldReadable();
             //添加被保护的包名和被保护的进程信息
-            XposedHelpers.findAndHookConstructor("com.android.server.am.ConfigUtil", loadPackageParam.classLoader, new XC_MethodHook() {
-                @Override
-                protected void afterHookedMethod(MethodHookParam param) throws IllegalAccessException {
-                    if(configUtils.getBoolean("use_protect_list")) {
-                        Field[] fields = param.thisObject.getClass().getDeclaredFields();    // 获取对象的所有属性
-                        for (Field item : fields) {
-                            String name = item.getName();
-                            if ("mProtectPkg".equals(name)) {
-                                item.setAccessible(true);
-                                Set<String> mProtectPkg = (Set<String>) item.get(param.thisObject);
-                                mProtectPkg.addAll(ignorePkgs);
-                            } else if ("mProtectProcess".equals(name)) {
-                                item.setAccessible(true);
-                                Set<String> mProtectPkg = (Set<String>) item.get(param.thisObject);
-                                mProtectPkg.clear();
-                                mProtectPkg.addAll(ignoreProcesses);
-                            }
-                        }
-//                        Set<String> mProtectPkg =  (Set<String>)XposedHelpers.getObjectField(param.thisObject, "mProtectPkg");
-//                        for(String pkg : mProtectPkg){
-//                            log("mProtectPkg element "+pkg);
+//            XposedHelpers.findAndHookConstructor("com.android.server.am.ConfigUtil", loadPackageParam.classLoader, new XC_MethodHook() {
+//                @Override
+//                protected void afterHookedMethod(MethodHookParam param) throws IllegalAccessException {
+//                    Uri uri = Uri.parse("content://org.huakai.cellular_pro.unlock.provider/use_protect_list");
+//                    ContentResolver resolver =  getSystemContext().getContentResolver();
+//                    String flag = resolver.getType(uri);
+//                    log("use_protect_list:" + flag);
+//                    if(configUtils.getBoolean("use_protect_list", true)) {
+//                        Field[] fields = param.thisObject.getClass().getDeclaredFields();    // 获取对象的所有属性
+//                        for (Field item : fields) {
+//                            String name = item.getName();
+//                            if ("mProtectPkg".equals(name)) {
+//                                item.setAccessible(true);
+//                                Set<String> mProtectPkg = (Set<String>) item.get(param.thisObject);
+//                                mProtectPkg.addAll(ignorePkgs);
+//                            } else if ("mProtectProcess".equals(name)) {
+//                                item.setAccessible(true);
+//                                Set<String> mProtectPkg = (Set<String>) item.get(param.thisObject);
+//                                mProtectPkg.clear();
+//                                mProtectPkg.addAll(ignoreProcesses);
+//                            }
 //                        }
-//                        Set<String> mProtectProcess =  (Set<String>)XposedHelpers.getObjectField(param.thisObject, "mProtectProcess");
-//                        for(String pkg : mProtectProcess){
-//                            log("mProtectProcess element "+pkg);
-//                        }
-                    }
-                }
-            });
+////                        Set<String> mProtectPkg =  (Set<String>)XposedHelpers.getObjectField(param.thisObject, "mProtectPkg");
+////                        for(String pkg : mProtectPkg){
+////                            log("mProtectPkg element "+pkg);
+////                        }
+////                        Set<String> mProtectProcess =  (Set<String>)XposedHelpers.getObjectField(param.thisObject, "mProtectProcess");
+////                        for(String pkg : mProtectProcess){
+////                            log("mProtectProcess element "+pkg);
+////                        }
+//                    }
+//                }
+//            });
 
             //添加可重起的包名
             XposedHelpers.findAndHookConstructor("com.android.server.am.OplusAppStartupConfig", loadPackageParam.classLoader,
                     new XC_MethodHook() {
                         @Override
                         protected void afterHookedMethod(MethodHookParam param) {
-                            if(configUtils.getBoolean("use_restart_list")) {
+                            if(configUtils.getBoolean("use_restart_list", true)) {
                                 List mProtectPkg = Arrays.asList(new String[]{
                                         "com.tencent.mm",
                                         "com.tencent.mobileqq",
@@ -202,7 +216,7 @@ public class CpocPatch implements IXposedHookLoadPackage {
                 XposedBridge.hookMethod(skipStopInBackgroundBegin, new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        if(configUtils.getBoolean("use_service_list")) {
+                        if(configUtils.getBoolean("use_service_list", true)) {
                             Object paramServiceRecord = param.args[0];
                             Object shortInstanceName = null;
                             Field[] fields = paramServiceRecord.getClass().getDeclaredFields();    // 获取对象的所有属性
@@ -233,7 +247,7 @@ public class CpocPatch implements IXposedHookLoadPackage {
                     new XC_MethodHook() {
                         @Override
                         protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                            if(configUtils.getBoolean("use_package_list")) {
+                            if(configUtils.getBoolean("use_package_list", true)) {
                                 Object oplusHansPackage = param.args[0];
                                 Method method = OplusHansPackage.getMethod("getPkgName", new Class[]{});
                                 String PkgName = (String) method.invoke(oplusHansPackage, new Object[]{});
@@ -249,28 +263,28 @@ public class CpocPatch implements IXposedHookLoadPackage {
             );
 
             //防止被强杀 killing
-            Method method = XposedHelpers.findMethodBestMatch(ProcessRecord, "killLocked", String.class, String.class, Integer.class, Integer.class, Boolean.class);
-            if (method != null) {
-                log("found killLocked method, hook it");
-                XposedBridge.hookMethod(method, new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        if(configUtils.getBoolean("use_package_list")) {
-                            if (param.args[0].toString().indexOf("cpu") != -1) {
-                                Object processRecord = param.thisObject;
-                                Method method = ProcessRecord.getMethod("toShortString", new Class[]{});
-                                Object app = method.invoke(processRecord, new Object[]{});
-                                for (String pkg : ignorePkgs) {
-                                    if (app.toString().indexOf(pkg) != -1) {
-                                        log("refuse be killed reason=" + param.args[0] + " description=" + param.args[1] + " （by hook ProcessRecord）" + pkg);
-                                        param.setResult(null);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
+//            Method method = XposedHelpers.findMethodBestMatch(ProcessRecord, "killLocked", String.class, String.class, Integer.class, Integer.class, Boolean.class);
+//            if (method != null) {
+//                log("found killLocked method, hook it");
+//                XposedBridge.hookMethod(method, new XC_MethodHook() {
+//                    @Override
+//                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+//                        if(configUtils.getBoolean("use_package_list", true)) {
+//                            if (param.args[0].toString().indexOf("cpu") != -1) {
+//                                Object processRecord = param.thisObject;
+//                                Method method = ProcessRecord.getMethod("toShortString", new Class[]{});
+//                                Object app = method.invoke(processRecord, new Object[]{});
+//                                for (String pkg : ignorePkgs) {
+//                                    if (app.toString().indexOf(pkg) != -1) {
+//                                        log("refuse be killed reason=" + param.args[0] + " description=" + param.args[1] + " （by hook ProcessRecord）" + pkg);
+//                                        param.setResult(null);
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                });
+//            }
         } else if (loadPackageParam.packageName.indexOf("make.more.r2d2.cellular_pro")!=-1) {
             XposedHelpers.findAndHookMethod("com.stub.StubApp", loadPackageParam.classLoader,
                     "getOrigApplicationContext", Context.class, new XC_MethodHook() {
